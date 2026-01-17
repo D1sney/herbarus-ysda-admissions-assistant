@@ -5,7 +5,7 @@ from langchain_core.retrievers import BaseRetriever
 def create_retriever(
     vectorstore: FAISS,
     search_type: str = "similarity",
-    k: int = 4,
+    k: int = 20,
     score_threshold: float | None = None,
 ) -> BaseRetriever:
     """Create a retriever from FAISS vectorstore.
