@@ -9,3 +9,6 @@ Baseline knowledge base ingestion for the YSDA admissions assistant.
 
 ## Run (baseline)
 - `python3 src/ingest/web/build_knowledge_base.py --max-depth 1`
+
+## Split documents
+- `python3 src/splitting/split_corpus.py --max-chars 1000 --overlap 200`
