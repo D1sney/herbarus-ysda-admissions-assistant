@@ -13,7 +13,7 @@ with open(OUTPUT_JSONL, 'w', encoding='utf-8') as f:
         record = {
             "text": row['text'],
             "metadata": {
-                "link": row['link'].strip() if pd.notna(row['link']) else "",
+                "url": row['url'].strip() if pd.notna(row['url']) else "",
                 "date": row['date'] if pd.notna(row['date']) else ""
             }
         }

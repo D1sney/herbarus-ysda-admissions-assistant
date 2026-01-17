@@ -10,7 +10,7 @@
 {
   "text": "Текст сообщения...",
   "metadata": {
-    "link": "https://t.me/vse_v_shad/123",
+    "url": "https://t.me/vse_v_shad/123",
     "date": "2025-04-03T14:14:05"
   }
 }
