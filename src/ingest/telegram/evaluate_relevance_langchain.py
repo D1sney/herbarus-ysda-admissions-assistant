@@ -2,9 +2,12 @@ import pandas as pd
 import os
 import time
 import httpx
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from tqdm import tqdm
+
+load_dotenv()
 
 INPUT_CSV = "src/ingest/telegram/messages_parsed.csv"
 OUTPUT_CSV = "src/ingest/telegram/messages_with_full_llm_response.csv"
@@ -15,9 +18,9 @@ REQUEST_DELAY = 2
 http_client = httpx.Client(timeout=30.0)
 
 llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key="sk-l2JwJbUc-qW4PfBTbJqzLQ",
-    base_url="https://api.vsellm.ru/",
+    model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+    api_key=os.getenv("LLM_API_KEY"),
+    base_url=os.getenv("LLM_BASE_URL"),
     temperature=0.00001,
     http_client=http_client
 )
