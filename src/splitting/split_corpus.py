@@ -8,17 +8,17 @@ from langchain_community.document_loaders import DataFrameLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Split corpus.csv into chunks.")
+    parser = argparse.ArgumentParser(description="Split corpus.jsonl into chunks.")
     parser.add_argument(
-        "--input-csv",
+        "--input-jsonl",
         action="append",
-        default=["src/ingest/web/data/processed/text/corpus.csv"],
-        help="Input CSV(s) with columns: text, metadata. Can be repeated.",
+        default=["src/ingest/web/data/processed/text/corpus.jsonl"],
+        help="Input JSONL file(s) with fields: text, metadata. Can be repeated.",
     )
     parser.add_argument(
-        "--output-csv",
-        default="src/splitting/data/chunks.csv",
-        help="Output CSV with columns: text, metadata.",
+        "--output-jsonl",
+        default="src/splitting/data/chunks.jsonl",
+        help="Output JSONL file with fields: text, metadata.",
     )
     parser.add_argument("--max-chars", type=int, default=1000, help="Max chunk size.")
     parser.add_argument("--overlap", type=int, default=200, help="Chunk overlap in chars.")
@@ -41,16 +41,24 @@ def build_splitter(max_chars: int, overlap: int) -> RecursiveCharacterTextSplitt
 
 def main() -> None:
     args = parse_args()
-    output_path = Path(args.output_csv)
+    output_path = Path(args.output_jsonl)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    input_paths = [Path(p) for p in args.input_csv]
+    input_paths = [Path(p) for p in args.input_jsonl]
     existing_inputs = [p for p in input_paths if p.exists()]
     if not existing_inputs:
-        raise SystemExit("No input CSV files found.")
+        raise SystemExit("No input JSONL files found.")
 
-    dataframes = [pd.read_csv(path) for path in existing_inputs]
-    df = pd.concat(dataframes, ignore_index=True)
+    # Load JSONL files
+    documents_data = []
+    for path in existing_inputs:
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                row = json.loads(line)
+                documents_data.append(row)
+
+    # Convert to DataFrame for DataFrameLoader
+    df = pd.DataFrame(documents_data)
     loader = DataFrameLoader(df, page_content_column="text")
     documents = loader.load()
 
@@ -77,13 +85,15 @@ def main() -> None:
             rows.append(
                 {
                     "text": chunk,
-                    "metadata": json.dumps(chunk_meta, ensure_ascii=False),
+                    "metadata": chunk_meta,
                 }
             )
             total_chunks += 1
 
-    out_df = pd.DataFrame(rows, columns=["text", "metadata"])
-    out_df.to_csv(output_path, index=False)
+    # Write JSONL
+    with output_path.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     print(f"[split] output={output_path} rows={total_chunks}")
 

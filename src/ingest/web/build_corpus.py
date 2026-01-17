@@ -1,9 +1,8 @@
-import csv
 import json
 from pathlib import Path
 
 
-def build_corpus_csv(
+def build_corpus_jsonl(
     input_path: Path,
     output_path: Path,
     min_chars: int = 200,
@@ -14,10 +13,7 @@ def build_corpus_csv(
     with input_path.open("r", encoding="utf-8") as in_f, output_path.open(
         "w",
         encoding="utf-8",
-        newline="",
     ) as out_f:
-        writer = csv.DictWriter(out_f, fieldnames=["text", "metadata"])
-        writer.writeheader()
         for line in in_f:
             row = json.loads(line)
             text = row.get("text", "")
@@ -28,12 +24,11 @@ def build_corpus_csv(
                 "title": row.get("title", ""),
                 "source_file": row.get("source_file", ""),
             }
-            writer.writerow(
-                {
-                    "text": text,
-                    "metadata": json.dumps(metadata, ensure_ascii=False),
-                }
-            )
+            out_row = {
+                "text": text,
+                "metadata": metadata,
+            }
+            out_f.write(json.dumps(out_row, ensure_ascii=False) + "\n")
             kept += 1
             if progress_cb:
                 progress_cb(f"[corpus] {kept}")

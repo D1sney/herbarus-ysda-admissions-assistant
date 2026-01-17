@@ -3,7 +3,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-from build_corpus import build_corpus_csv
+from build_corpus import build_corpus_jsonl
 from crawl_shad import crawl
 from extract_text import build_pages_jsonl
 
@@ -19,7 +19,7 @@ def prepare_dirs(base_dir: Path, clear: bool) -> dict[str, Path]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Crawl shad.yandex.ru and build CSV corpus.")
+    parser = argparse.ArgumentParser(description="Crawl shad.yandex.ru and build JSONL corpus.")
     parser.add_argument(
         "--start-url",
         action="append",
@@ -73,8 +73,8 @@ def main() -> None:
         progress_cb=progress,
     )
 
-    corpus_path = dirs["processed"] / "corpus.csv"
-    build_corpus_csv(
+    corpus_path = dirs["processed"] / "corpus.jsonl"
+    build_corpus_jsonl(
         input_path=pages_path,
         output_path=corpus_path,
         min_chars=args.min_chars,
