@@ -36,7 +36,7 @@ def initialize_rag():
     if st.session_state.initialized:
         return
 
-    api_key = None
+    api_key = ""
     if not api_key:
         st.error("⚠️ OPENAI_API_KEY environment variable not set!")
         st.stop()
@@ -51,9 +51,7 @@ def initialize_rag():
 
         # Build or load vectorstore
         chunks_paths = [
-            "src/splitting/data/chunks.jsonl",
-            # Add telegram chunks if exists
-            # "src/splitting/data/telegram_chunks.jsonl",
+            "/Users/shchsergey/programming/herbarus-ysda-rag/src/splitting/data/knowledge_base_chunks.jsonl",
         ]
         index_path = "src/rag/data/vectorstore"
 
@@ -66,7 +64,7 @@ def initialize_rag():
         st.session_state.vectorstore = vectorstore
 
         # Create retriever
-        retriever = create_retriever(vectorstore, search_type="similarity", k=4)
+        retriever = create_retriever(vectorstore, search_type="similarity", k=5)
 
         # Create LLM
         llm = ChatOpenAI(
