@@ -20,7 +20,7 @@ OUTPUT_JSONL = Path("src/ingest/telegram/tg_knowledge_base_boosted.jsonl")
 llm_http_client = httpx.Client(timeout=60.0, verify=False)
 
 llm = ChatOpenAI(
-    api_key="sk-pmozajQBrdWVKqeAYs4n8A",
+    api_key=os.getenv("OPENAI_API_KEY"),
     model="gpt-4o-mini",
     base_url="https://api.vsellm.ru/",
     temperature=0
