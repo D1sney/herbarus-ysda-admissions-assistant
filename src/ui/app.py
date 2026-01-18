@@ -46,12 +46,12 @@ def initialize_rag():
         embeddings = OpenAIEmbeddings(
             api_key=api_key,
             model="text-embedding-3-small",
-            base_url="https://api.vsellm.ru/",
+            base_url="https://api.vsellm.ru/"
         )
 
         # Build or load vectorstore
         chunks_paths = [
-            "/Users/shchsergey/programming/herbarus-ysda-rag/src/splitting/data/knowledge_base_chunks.jsonl",
+            "src/splitting/data/knowledge_base_chunks.jsonl",
         ]
         index_path = "src/rag/data/vectorstore"
 

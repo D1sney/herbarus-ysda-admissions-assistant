@@ -27,7 +27,7 @@ from rag.agent import build_agent
 # CONFIG
 # -------------------------
 
-TELEGRAM_BOT_TOKEN = "8157334732:AAF0eyNbHiCRVvb_7mTl9NQMKnWXsctwA4E"
+TELEGRAM_BOT_TOKEN = ""
 
 # FAISS index path (у тебя уже есть)
 INDEX_PATH = Path("src/rag/data/vectorstore")
@@ -83,7 +83,7 @@ def build_runtime():
     )
 
     vectorstore: FAISS = load_vectorstore(INDEX_PATH, embeddings)
-    api_key = "api"
+    api_key = ""
     llm = ChatOpenAI(
             api_key=api_key,
             model="gpt-4o-mini",
