@@ -6,9 +6,6 @@ OUTPUT_CSV = 'messages_parsed.csv'
 CHANNEL_USERNAME = '@vse_v_shad'
 
 def extract_text(text_field):
-    """
-    Извлекает текст из поля text, которое может быть строкой или списком словарей.
-    """
     if isinstance(text_field, str):
         return text_field
     elif isinstance(text_field, list):
@@ -36,7 +33,7 @@ def main():
         text = extract_text(msg.get('text', ''))
         date = msg.get('date')
         msg_id = msg.get('id')
-        
+
         link = f"https://t.me/{CHANNEL_USERNAME.lstrip('@')}/{msg_id}"
 
         rows.append({

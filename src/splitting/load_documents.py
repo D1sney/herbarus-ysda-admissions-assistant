@@ -21,7 +21,6 @@ def load_documents_from_jsonl(jsonl_paths: list[str | Path]) -> list[Document]:
     if not existing:
         raise ValueError(f"No JSONL files found: {jsonl_paths}")
 
-    # Load JSONL files
     documents_data = []
     for path in existing:
         with path.open("r", encoding="utf-8") as f:
@@ -29,12 +28,10 @@ def load_documents_from_jsonl(jsonl_paths: list[str | Path]) -> list[Document]:
                 row = json.loads(line)
                 documents_data.append(row)
 
-    # Convert to DataFrame for DataFrameLoader
     df = pd.DataFrame(documents_data)
     loader = DataFrameLoader(df, page_content_column="text")
     documents = loader.load()
 
-    # Parse metadata (should already be dict in JSONL)
     for doc in documents:
         raw_meta = doc.metadata.pop("metadata", None)
         if isinstance(raw_meta, dict):

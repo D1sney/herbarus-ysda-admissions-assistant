@@ -27,21 +27,12 @@ def build_or_load_vectorstore(
     """
     index_path = Path(index_path)
 
-    # Check if index exists
     if not force_rebuild and index_path.exists() and (index_path / "index.faiss").exists():
-        print(f"[vectorstore] Loading existing index from {index_path}")
         vectorstore = load_vectorstore(index_path, embeddings)
         return vectorstore, True
 
-    # Build new index
-    print(f"[vectorstore] Building new index from chunks...")
     documents = load_documents_from_jsonl(chunks_paths)
-    print(f"[vectorstore] Loaded {len(documents)} documents")
-
     vectorstore = create_vectorstore(documents, embeddings)
-    print(f"[vectorstore] Index created")
-
     save_vectorstore(vectorstore, index_path)
-    print(f"[vectorstore] Index saved to {index_path}")
 
     return vectorstore, False

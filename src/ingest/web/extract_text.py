@@ -17,9 +17,7 @@ def clean_text(text: str) -> str:
 
 
 def extract_text_from_json(data, result: list) -> None:
-    """Рекурсивно извлекает текстовые значения из JSON."""
     if isinstance(data, dict):
-        # Особое внимание к полям, которые обычно содержат контент
         content_fields = ['content', 'text', 'title', 'description', 'name', 'alt']
         for key, value in data.items():
             if key in content_fields and isinstance(value, str) and len(value.strip()) > 0:
@@ -34,9 +32,7 @@ def extract_text_from_json(data, result: list) -> None:
         for item in data:
             extract_text_from_json(item, result)
     elif isinstance(data, str) and len(data.strip()) > 0:
-        # Пропускаем очень короткие строки, URL и технические значения
         stripped = data.strip()
-        # Проверяем, содержит ли строка кириллицу (вероятно, это контент)
         has_cyrillic = any('\u0400' <= char <= '\u04FF' for char in stripped)
         if (has_cyrillic and len(stripped) > 3
             and not stripped.startswith(("http://", "https://", "data:", "#"))
@@ -48,7 +44,6 @@ def extract_text_from_json(data, result: list) -> None:
 def extract_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
-    # Извлекаем текст из JSON в script тегах
     json_texts = []
     for script in soup.find_all("script"):
         script_text = script.string
@@ -57,33 +52,24 @@ def extract_text(html: str) -> str:
 
         script_str = str(script_text)
 
-        # Ищем JSON объекты в script теге
-        # Пробуем найти JSON объект, начиная с разных позиций
         try:
-            # Ищем все возможные начала JSON объектов
             start_positions = []
 
-            # Ищем паттерны типа {"default":, {"sections":, window.__INITIAL_STATE__ = {
             markers = ['{"default":', '{"sections":', 'window.__INITIAL_STATE__', 'window.__DATA__']
             for marker in markers:
                 idx = script_str.find(marker)
                 if idx != -1:
-                    # Находим первую открывающую скобку после маркера
                     brace_pos = script_str.find('{', idx)
                     if brace_pos != -1:
                         start_positions.append(brace_pos)
 
-            # Если не нашли по маркерам, ищем просто большие JSON объекты
             if not start_positions:
-                # Ищем позиции с {"default" или {"sections"
                 for i in range(len(script_str) - 20):
                     if script_str[i:i+11] == '{"default":' or script_str[i:i+12] == '{"sections":':
                         start_positions.append(i)
 
-            # Пробуем распарсить JSON с каждой найденной позиции
-            for json_start in start_positions[:3]:  # Ограничиваем количество попыток
+            for json_start in start_positions[:3]:
                 try:
-                    # Находим баланс скобок для извлечения полного JSON объекта
                     brace_count = 0
                     json_end = -1
                     for i in range(json_start, min(json_start + 1000000, len(script_str))):
@@ -99,13 +85,12 @@ def extract_text(html: str) -> str:
                         json_str = script_str[json_start:json_end]
                         data = json.loads(json_str)
                         extract_text_from_json(data, json_texts)
-                        break  # Если успешно распарсили, не пробуем другие позиции
+                        break
                 except (json.JSONDecodeError, ValueError, IndexError):
                     continue
         except Exception:
             pass
 
-    # Теперь удаляем ненужные теги и извлекаем HTML текст
     for tag in STRIP_TAGS:
         for node in soup.find_all(tag):
             node.decompose()
@@ -120,7 +105,6 @@ def extract_text(html: str) -> str:
 
     html_text = base.get_text(separator="\n", strip=True)
 
-    # Объединяем тексты из JSON и HTML
     all_text = "\n".join(json_texts) + "\n" + html_text
     return clean_text(all_text)
 

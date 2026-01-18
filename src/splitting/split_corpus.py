@@ -49,7 +49,6 @@ def main() -> None:
     if not existing_inputs:
         raise SystemExit("No input JSONL files found.")
 
-    # Load JSONL files
     documents_data = []
     for path in existing_inputs:
         with path.open("r", encoding="utf-8") as f:
@@ -57,7 +56,6 @@ def main() -> None:
                 row = json.loads(line)
                 documents_data.append(row)
 
-    # Convert to DataFrame for DataFrameLoader
     df = pd.DataFrame(documents_data)
     loader = DataFrameLoader(df, page_content_column="text")
     documents = loader.load()

@@ -15,14 +15,12 @@ CACHE_CSV = "src/ingest/telegram/relevance_cache.csv"
 
 REQUEST_DELAY = 2
 
-http_client = httpx.Client(timeout=30.0)
 
 llm = ChatOpenAI(
     model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
-    api_key=os.getenv("LLM_API_KEY"),
+    api_key="sk-pmozajQBrdWVKqeAYs4n8A",
     base_url=os.getenv("LLM_BASE_URL"),
-    temperature=0.00001,
-    http_client=http_client
+    temperature=0.00001
 )
 
 if os.path.exists(CACHE_CSV):
@@ -53,9 +51,9 @@ Consider whether the text contains explicit information about:
 
 Ignore accuracy, writing style, formatting, or unrelated content. Focus solely on topic relevance.
 
-Return a single integer from 0 to 10, where 10 means the text is fully relevant and directly useful for answering applicant questions, and 0 means it is completely unrelated.  
+Return a single integer from 0 to 10, where 10 means the text is fully relevant and directly useful for answering applicant questions, and 0 means it is completely unrelated.
 
-Text:  
+Text:
 {text}
 """
     try:
@@ -67,7 +65,7 @@ Text:
         return result
     except Exception as e:
         print("Stopping to avoid data corruption.")
-        raise 
+        raise
 
 df = pd.read_csv(INPUT_CSV)
 

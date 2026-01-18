@@ -13,11 +13,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
 
-
-# =========================
-# CONFIG
-# =========================
-
 INPUT_JSONL = Path("src/ingest/telegram/tg_knowledge_base.jsonl")
 OUTPUT_JSONL = Path("src/ingest/telegram/tg_knowledge_base_boosted.jsonl")
 
@@ -31,40 +26,30 @@ llm = ChatOpenAI(
     temperature=0
     )
 
-# Можно регулировать:
 MAX_RETRIES = 3
 SLEEP_ON_RETRY_SEC = 2.0
 
-
-# =========================
-# TEXT CLEANING
-# =========================
-
-# Удаление emoji/пиктограмм (широкий диапазон Unicode)
 _EMOJI_RE = re.compile(
     "["
 
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F700-\U0001F77F"  # alchemical symbols
-    "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
-    "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
-    "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
-    "\U0001FA00-\U0001FA6F"  # Chess Symbols + etc
-    "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-    "\U00002700-\U000027BF"  # Dingbats
-    "\U00002600-\U000026FF"  # Misc symbols
-    "\u200d"                 # Zero width joiner
-    "\uFE0F"                 # Variation selector
+    "\U0001F300-\U0001F5FF"
+    "\U0001F600-\U0001F64F"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FA6F"
+    "\U0001FA70-\U0001FAFF"
+    "\U00002700-\U000027BF"
+    "\U00002600-\U000026FF"
+    "\u200d"
+    "\uFE0F"
     "]",
     flags=re.UNICODE,
 )
 
-# Удаление bullet-символов, которые часто идут вместе с эмодзи
 _BULLETS_RE = re.compile(r"[•●◦▪️▫️■□◆◇▶►✓✔✗✖✘➤➔→⇒]+", re.UNICODE)
-
-# Схлопываем пробелы/переносы
 _WS_RE = re.compile(r"[ \t]+")
 _MANY_NEWLINES_RE = re.compile(r"\n{3,}")
 
@@ -74,14 +59,8 @@ def clean_telegram_text(text: str) -> str:
     t = _EMOJI_RE.sub("", t)
     t = _BULLETS_RE.sub("", t)
     t = _WS_RE.sub(" ", t)
-    # возвращаем чуть “markdown-like” формат: 2+ пустых строк -> 2
     t = _MANY_NEWLINES_RE.sub("\n\n", t)
     return t.strip()
-
-
-# =========================
-# OUTPUT SCHEMAS
-# =========================
 
 ContentType = Literal["поступление", "дедлайн", "ответ_на_вопрос", "объявление", "шум"]
 
@@ -99,11 +78,6 @@ class EnrichOut(BaseModel):
     keywords: List[str] = Field(description="Список ключевых фраз, 5-12 штук.")
     possible_questions: List[str] = Field(description="Список возможных вопросов пользователя, 3-5 штук.")
     content: str = Field(description="Нормализованный текст без эмодзи, без искажений смысла.")
-
-
-# =========================
-# PROMPTS
-# =========================
 
 classify_parser = PydanticOutputParser(pydantic_object=ClassifyOut)
 enrich_parser = PydanticOutputParser(pydantic_object=EnrichOut)
@@ -144,11 +118,6 @@ ENRICH_PROMPT = ChatPromptTemplate.from_messages([
     )
 ])
 
-
-# =========================
-# CHAINS
-# =========================
-
 classify_chain = (
     CLASSIFY_PROMPT.partial(format_instructions=classify_parser.get_format_instructions())
     | llm
@@ -162,7 +131,6 @@ enrich_chain = (
 )
 
 def format_enriched_chunk(source_url: str, out: EnrichOut) -> str:
-    # Собираем текст в твоём MD-формате
     tags = ", ".join(out.tags)
     keywords = "; ".join(out.keywords)
 
@@ -197,11 +165,6 @@ def call_with_retries(fn, *args, **kwargs):
             else:
                 raise last_err
 
-
-# =========================
-# MAIN
-# =========================
-
 def main():
     if not INPUT_JSONL.exists():
         raise FileNotFoundError(f"Input not found: {INPUT_JSONL}")
@@ -223,7 +186,6 @@ def main():
             try:
                 item = json.loads(line)
             except json.JSONDecodeError:
-                # пропускаем битые строки
                 continue
 
             text = (item.get("text") or "").strip()
@@ -234,12 +196,10 @@ def main():
 
             clean_text = clean_telegram_text(text)
 
-            # Пустые/почти пустые — шум
             if len(clean_text) < 20:
                 skipped_noise += 1
                 continue
 
-            # 1) classify
             cls: ClassifyOut = call_with_retries(
                 classify_chain.invoke,
                 {"clean_text": clean_text}
@@ -249,7 +209,6 @@ def main():
                 skipped_noise += 1
                 continue
 
-            # 2) enrich
             enr: EnrichOut = call_with_retries(
                 enrich_chain.invoke,
                 {

@@ -28,7 +28,6 @@ def normalize_url(url: str) -> str:
     parts = urlsplit(url)
     if parts.scheme not in {"http", "https"}:
         return ""
-    # Force https, drop fragment, and normalize host and path.
     netloc = parts.netloc.lower()
     if netloc.startswith("www."):
         netloc = netloc[4:]

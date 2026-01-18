@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-clear",
         action="store_true",
-        help="Do not очистить data-dir before run.",
+        help="Do not clear data-dir before run.",
     )
     return parser.parse_args()
 

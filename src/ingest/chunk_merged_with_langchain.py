@@ -8,8 +8,6 @@ INPUT_JSONL = Path("/Users/shchsergey/programming/herbarus-ysda-rag/src/ingest/m
 OUTPUT_JSONL = Path("/Users/shchsergey/programming/herbarus-ysda-rag/src/ingest/merged/knowledge_base_chunks.jsonl")
 
 SEPARATOR_CANON = "--- НАЧАЛО ЧАНКА ---"
-
-# устойчивый split: пробелы, переносы, вариации
 SPLIT_RE = re.compile(r"(?:\r?\n)?\s*---\s*НАЧАЛО\s*ЧАНКА\s*---\s*(?:\r?\n)?", re.UNICODE)
 
 
@@ -37,12 +35,10 @@ def main():
 
         parts = [p.strip() for p in SPLIT_RE.split(text) if p and p.strip()]
 
-        # если разделителя не было — считаем весь текст одним чанком
         if not parts:
             parts = [text]
 
         for chunk_i, p in enumerate(parts):
-            # возвращаем маркер в начало (для консистентности)
             chunk_text = f"{SEPARATOR_CANON}\n\n{p}"
 
             md = dict(d.metadata)

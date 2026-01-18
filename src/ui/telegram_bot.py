@@ -4,7 +4,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# добавить src в PYTHONPATH
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import os
@@ -22,86 +21,62 @@ from langchain_community.vectorstores import FAISS
 from rag.vectorstore import load_vectorstore
 from rag.agent import build_agent
 
-
-# -------------------------
-# CONFIG
-# -------------------------
-
-TELEGRAM_BOT_TOKEN = ""
-
-# FAISS index path (у тебя уже есть)
-INDEX_PATH = Path("src/rag/data/vectorstore")
-
-# embeddings должны совпадать с теми, что использовались при построении FAISS
-# если ты строил через vsellm + text-embedding-3-small, оставь так же
-EMB_BASE_URL = os.getenv("EMB_BASE_URL", "https://api.vsellm.ru/")
-EMB_MODEL = os.getenv("EMB_MODEL", "text-embedding-3-small")
-OPENAI_EMB_KEY = "sk-pmozajQBrdWVKqeAYs4n8A"
-
-
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("Set TELEGRAM_BOT_TOKEN env var")
+    raise RuntimeError("Set TELEGRAM_BOT_TOKEN environment variable")
 
+INDEX_PATH = Path("src/rag/data/vectorstore")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise RuntimeError("Set OPENAI_API_KEY environment variable")
 
-# -------------------------
-# In-memory chat history: last 20 messages per chat_id
-# -------------------------
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.vsellm.ru/")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "openai/text-embedding-3-large")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
-history_store: Dict[int, Deque] = {}  # chat_id -> deque[BaseMessage], maxlen=20
+history_store: Dict[int, Deque] = {}
 
 
 def get_history(chat_id: int) -> List:
     if chat_id not in history_store:
-        history_store[chat_id] = deque(maxlen=20)
+        history_store[chat_id] = deque(maxlen=6)
     return list(history_store[chat_id])
 
 
 def append_user(chat_id: int, text: str):
     from langchain_core.messages import HumanMessage
     if chat_id not in history_store:
-        history_store[chat_id] = deque(maxlen=20)
+        history_store[chat_id] = deque(maxlen=6)
     history_store[chat_id].append(HumanMessage(content=text))
 
 
 def append_ai(chat_id: int, text: str):
     from langchain_core.messages import AIMessage
     if chat_id not in history_store:
-        history_store[chat_id] = deque(maxlen=20)
+        history_store[chat_id] = deque(maxlen=6)
     history_store[chat_id].append(AIMessage(content=text))
 
-
-# -------------------------
-# Build RAG agent once
-# -------------------------
-
 def build_runtime():
-    # embeddings for loading FAISS
     embeddings = OpenAIEmbeddings(
-        api_key=OPENAI_EMB_KEY,
-        model=EMB_MODEL,
-        base_url=EMB_BASE_URL,
+        api_key=OPENAI_API_KEY,
+        model=EMBEDDING_MODEL,
+        base_url=OPENAI_BASE_URL,
     )
 
     vectorstore: FAISS = load_vectorstore(INDEX_PATH, embeddings)
-    api_key = ""
+
     llm = ChatOpenAI(
-            api_key=api_key,
-            model="gpt-4o-mini",
-            base_url="https://api.vsellm.ru/",
-            temperature=0,
-            timeout=60,
-        )
+        api_key=OPENAI_API_KEY,
+        model=LLM_MODEL,
+        base_url=OPENAI_BASE_URL,
+        temperature=0,
+    )
 
     run_agent = build_agent(llm=llm, vectorstore=vectorstore, k=6)
     return run_agent
 
 
 RUN_AGENT = build_runtime()
-
-
-# -------------------------
-# Telegram handlers
-# -------------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -126,10 +101,9 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     append_user(chat_id, user_text)
     chat_history = get_history(chat_id)
 
-    # Важно: RUN_AGENT синхронный; для простоты используем to_thread
     import asyncio
     try:
-        answer = await asyncio.to_thread(RUN_AGENT, user_text, chat_history)
+        answer = await asyncio.to_thread(RUN_AGENT, user_text, chat_history, str(chat_id))
     except Exception as e:
         answer = f"Ошибка: {e}"
 
