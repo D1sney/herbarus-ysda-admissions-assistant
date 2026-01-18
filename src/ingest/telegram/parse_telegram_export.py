@@ -42,7 +42,7 @@ def main():
         rows.append({
             'text': text,
             'date': date,
-            'link': link
+            'url': link
         })
 
     df = pd.DataFrame(rows)
