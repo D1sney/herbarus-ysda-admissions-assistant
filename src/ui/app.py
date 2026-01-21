@@ -7,6 +7,9 @@ from pathlib import Path
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage

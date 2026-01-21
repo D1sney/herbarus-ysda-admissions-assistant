@@ -7,9 +7,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import os
+import logging
 from collections import deque
 from pathlib import Path
 from typing import Deque, Dict, List
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
@@ -20,6 +24,13 @@ from langchain_community.vectorstores import FAISS
 
 from rag.vectorstore import load_vectorstore
 from rag.agent import build_agent
+
+# Настройка логирования
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_BOT_TOKEN:
@@ -57,6 +68,7 @@ def append_ai(chat_id: int, text: str):
     history_store[chat_id].append(AIMessage(content=text))
 
 def build_runtime():
+    logger.info("Загрузка RAG системы...")
     embeddings = OpenAIEmbeddings(
         api_key=OPENAI_API_KEY,
         model=EMBEDDING_MODEL,
@@ -64,6 +76,7 @@ def build_runtime():
     )
 
     vectorstore: FAISS = load_vectorstore(INDEX_PATH, embeddings)
+    logger.info("Vectorstore загружен")
 
     llm = ChatOpenAI(
         api_key=OPENAI_API_KEY,
@@ -73,6 +86,7 @@ def build_runtime():
     )
 
     run_agent = build_agent(llm=llm, vectorstore=vectorstore, k=6)
+    logger.info("RAG агент готов")
     return run_agent
 
 
@@ -93,10 +107,13 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    user_name = update.effective_user.first_name or "Unknown"
     user_text = (update.message.text or "").strip()
 
     if not user_text:
         return
+
+    logger.info(f"[{chat_id}] {user_name}: {user_text[:100]}...")
 
     append_user(chat_id, user_text)
     chat_history = get_history(chat_id)
@@ -105,19 +122,23 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         answer = await asyncio.to_thread(RUN_AGENT, user_text, chat_history, str(chat_id))
     except Exception as e:
+        logger.error(f"[{chat_id}] Ошибка: {e}")
         answer = f"Ошибка: {e}"
 
+    logger.info(f"[{chat_id}] Бот: {answer[:100]}...")
     append_ai(chat_id, answer)
     await update.message.reply_text(answer)
 
 
 def main():
+    logger.info("Запуск Telegram бота...")
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 
+    logger.info("Бот запущен и ожидает сообщений")
     app.run_polling()
 
 
