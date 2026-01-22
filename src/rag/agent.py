@@ -252,7 +252,21 @@ def build_agent(
         needs_clar = bool(enrich.get("needs_clarification"))
         clar_q = (enrich.get("clarifying_question") or "").strip()
 
-        docs = retriever.invoke(clean_query)
+        # Retry логика для нестабильных embeddings (OpenRouter и др.)
+        docs = None
+        last_error = None
+        for attempt in range(3):
+            try:
+                docs = retriever.invoke(clean_query)
+                if docs is not None:
+                    break
+            except Exception as e:
+                last_error = e
+                import time
+                time.sleep(0.5 * (attempt + 1))
+
+        if docs is None and last_error:
+            raise last_error
 
         if not docs:
             return escalate_to_human(
